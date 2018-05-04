@@ -8,12 +8,15 @@ import {
   createFakeHTMLMarkerInstance,
 } from '../../test/mockGoogleMaps';
 import createHTMLMarker from '../elements/createHTMLMarker';
+import * as utils from '../utils';
 import { GOOGLE_MAPS_CONTEXT } from '../GoogleMaps';
 import HTMLMarker from '../HTMLMarker';
 
 Enzyme.configure({ adapter: new Adapter() });
 
 jest.mock('../elements/createHTMLMarker', () => jest.fn());
+
+jest.mock('../utils');
 
 describe('HTMLMarker', () => {
   const defaultProps = {
@@ -24,6 +27,11 @@ describe('HTMLMarker', () => {
       },
     },
   };
+
+  beforeEach(() => {
+    utils.registerEvents.mockClear();
+    utils.registerEvents.mockReset();
+  });
 
   describe('creation', () => {
     it('expect to create the marker on didMount with default options', () => {
@@ -114,10 +122,8 @@ describe('HTMLMarker', () => {
         })
       );
     });
-  });
 
-  describe('update', () => {
-    it('expect to draw marker on didUpdate', () => {
+    it('expect to register the listeners on didMount', () => {
       const marker = createFakeHTMLMarkerInstance();
       const factory = jest.fn(() => marker);
       const mapInstance = createFakeMapInstance();
@@ -131,8 +137,7 @@ describe('HTMLMarker', () => {
         ...defaultProps,
       };
 
-      // Use `mount` instead of `shallow` to trigger didUpdate
-      const wrapper = mount(
+      shallow(
         <HTMLMarker {...props}>
           <span>This is the children.</span>
         </HTMLMarker>,
@@ -146,11 +151,133 @@ describe('HTMLMarker', () => {
         }
       );
 
-      expect(marker.draw).toHaveBeenCalledTimes(1);
+      expect(utils.registerEvents).toHaveBeenCalledTimes(1);
+      expect(utils.registerEvents).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+        marker
+      );
+    });
+  });
+
+  describe('update', () => {
+    it('expect to remove the listeners on didUpdate', () => {
+      const removeEventListeners = jest.fn();
+      const marker = createFakeHTMLMarkerInstance();
+      const factory = jest.fn(() => marker);
+      const mapInstance = createFakeMapInstance();
+      const google = createFakeGoogleReference({
+        mapInstance,
+      });
+
+      createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => removeEventListeners);
+
+      const props = {
+        ...defaultProps,
+      };
+
+      const wrapper = shallow(
+        <HTMLMarker {...props}>
+          <span>This is the children.</span>
+        </HTMLMarker>,
+        {
+          context: {
+            [GOOGLE_MAPS_CONTEXT]: {
+              instance: mapInstance,
+              google,
+            },
+          },
+        }
+      );
+
+      expect(removeEventListeners).toHaveBeenCalledTimes(0);
+
+      // Simulate the update
+      wrapper.instance().componentDidUpdate();
+
+      expect(removeEventListeners).toHaveBeenCalledTimes(1);
+    });
+
+    it('expect to register the listeners on didUpdate', () => {
+      const marker = createFakeHTMLMarkerInstance();
+      const factory = jest.fn(() => marker);
+      const mapInstance = createFakeMapInstance();
+      const google = createFakeGoogleReference({
+        mapInstance,
+      });
+
+      createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => () => {});
+
+      const props = {
+        ...defaultProps,
+      };
+
+      const wrapper = shallow(
+        <HTMLMarker {...props}>
+          <span>This is the children.</span>
+        </HTMLMarker>,
+        {
+          context: {
+            [GOOGLE_MAPS_CONTEXT]: {
+              instance: mapInstance,
+              google,
+            },
+          },
+        }
+      );
+
+      expect(utils.registerEvents).toHaveBeenCalledTimes(1);
+
+      // Simulate the update
+      wrapper.instance().componentDidUpdate();
+
+      expect(utils.registerEvents).toHaveBeenCalledTimes(2);
+      expect(utils.registerEvents).toHaveBeenLastCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+        marker
+      );
+    });
+
+    it('expect to draw marker on didUpdate', () => {
+      const marker = createFakeHTMLMarkerInstance();
+      const factory = jest.fn(() => marker);
+      const mapInstance = createFakeMapInstance();
+      const google = createFakeGoogleReference({
+        mapInstance,
+      });
+
+      createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => () => {});
+
+      const props = {
+        ...defaultProps,
+      };
+
+      const wrapper = shallow(
+        <HTMLMarker {...props}>
+          <span>This is the children.</span>
+        </HTMLMarker>,
+        {
+          context: {
+            [GOOGLE_MAPS_CONTEXT]: {
+              instance: mapInstance,
+              google,
+            },
+          },
+        }
+      );
+
+      expect(marker.draw).toHaveBeenCalledTimes(0);
 
       wrapper.instance().componentDidUpdate();
 
-      expect(marker.draw).toHaveBeenCalledTimes(2);
+      expect(marker.draw).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -205,6 +332,8 @@ describe('HTMLMarker', () => {
       });
 
       createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => () => {});
 
       const props = {
         ...defaultProps,
@@ -276,6 +405,8 @@ describe('HTMLMarker', () => {
       });
 
       createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => () => {});
 
       const props = {
         ...defaultProps,
@@ -368,6 +499,8 @@ describe('HTMLMarker', () => {
 
       createHTMLMarker.mockImplementationOnce(() => factory);
 
+      utils.registerEvents.mockImplementation(() => () => {});
+
       const props = {
         ...defaultProps,
       };
@@ -455,6 +588,8 @@ describe('HTMLMarker', () => {
       });
 
       createHTMLMarker.mockImplementationOnce(() => factory);
+
+      utils.registerEvents.mockImplementation(() => () => {});
 
       const props = {
         ...defaultProps,
